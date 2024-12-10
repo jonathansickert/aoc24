@@ -1,12 +1,4 @@
-from aoc24.input import read_input_lines
-
-lines: list[str] = read_input_lines(day=7)
-lines_split: list[list[str]] = [line.split(":") for line in lines]
-equations: dict[int, list[int]] = {
-    int(line[0]): list(map(int, line[1].split())) for line in lines_split
-}
-answer_1: int = 0
-answer_2: int = 0
+from aoc24.aoc_decorator import solves_puzzle, to_str_grid
 
 
 def has_combination(
@@ -31,11 +23,21 @@ def has_combination(
     return _has_combination(numbers[1:], numbers[0], target)
 
 
-for target, numbers in equations.items():
-    if has_combination(numbers=numbers, target=target):
-        answer_1 += target
-    if has_combination(numbers, target, support_concat=True):
-        answer_2 += target
+@solves_puzzle(day=7)
+def solve_both_parts(input: str) -> tuple[int, int]:
+    lines_split: list[list[str]] = [line.split(":") for line in to_str_grid(input)]
+    equations: dict[int, list[int]] = {
+        int(line[0]): list(map(int, line[1].split())) for line in lines_split
+    }
+    answer1: int = 0
+    answer2: int = 0
+    for target, numbers in equations.items():
+        if has_combination(numbers=numbers, target=target):
+            answer1 += target
+        if has_combination(numbers, target, support_concat=True):
+            answer2 += target
+    return answer1, answer2
 
-print(answer_1)
-print(answer_2)
+
+if __name__ == "__main__":
+    solve_both_parts()

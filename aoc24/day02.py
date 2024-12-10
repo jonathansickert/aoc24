@@ -1,39 +1,29 @@
-from aoc24.input import read_input_lines
-
-lines: list[str] = read_input_lines(day=2)
-lines_split: list[list[str]] = [line.split() for line in lines]
-answer_1 = 0
-answer_2 = 0
+from aoc24.aoc_decorator import solves_puzzle, to_int_grid
 
 
-def is_safe(
-    record: list[int],
-) -> bool:
-    prev: int = record[0]
-    ascending: bool = record[1] > prev
-
-    for level in record[1:]:
-        cur: int = level
-        if ascending is True:
-            if cur < prev or cur - prev > 3 or cur - prev < 1:
-                return False
-        if ascending is False:
-            if prev < cur or prev - cur > 3 or prev - cur < 1:
-                return False
-        prev = cur
-    return True
+def is_safe(record: list[int]) -> bool:
+    diff: list[int] = [record[i + 1] - record[i] for i in range(len(record) - 1)]
+    if diff[0] > 0:  # ascending
+        return all(1 <= x <= 3 for x in diff)
+    return all(-3 <= x <= -1 for x in diff)  # descending
 
 
-for line in lines_split:
-    record = list(map(int, line))
-    if is_safe(record):
-        answer_1 += 1
-        answer_2 += 1
-    else:
-        for i in range(0, len(record)):
-            if is_safe(record[:i] + record[i + 1 :]):
-                answer_2 += 1
-                break
+@solves_puzzle(day=2)
+def solve_both_parts(input: str) -> tuple[int, int]:
+    grid: list[list[int]] = to_int_grid(input)
+    answer1: int = 0
+    answer2: int = 0
+    for record in grid:
+        if is_safe(record):
+            answer1 += 1
+            answer2 += 1
+        else:
+            for i in range(0, len(record)):
+                if is_safe(record[:i] + record[i + 1 :]):
+                    answer2 += 1
+                    break
+    return answer1, answer2
 
-print(answer_1)
-print(answer_2)
+
+if __name__ == "__main__":
+    solve_both_parts()

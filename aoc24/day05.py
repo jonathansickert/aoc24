@@ -1,20 +1,9 @@
 from copy import copy
 
-from aoc24.input import read_input
-
-input: str = read_input(day=5)
-rules_input, updates_input = input.split("\n\n")
-rules: list[tuple[int, int]] = [
-    (int(rule[0:2]), int(rule[3:5])) for rule in rules_input.split()
-]
-updates: list[list[int]] = [
-    list(map(int, update.split(sep=","))) for update in updates_input.split()
-]
-answer_1: int = 0
-answer_2: int = 0
+from aoc24.aoc_decorator import solves_puzzle
 
 
-def correct(update: list[int]) -> bool:
+def correct(update: list[int], rules: list[tuple[int, int]]) -> bool:
     swapped = False
     for rule in rules:
         first, second = rule
@@ -30,15 +19,27 @@ def correct(update: list[int]) -> bool:
     return not swapped
 
 
-for update in updates:
-    ucopy: list[int] = copy(update)
-    if correct(ucopy):  # initially correct
-        answer_1 += ucopy[len(ucopy) // 2]
-    else:
-        while not correct(ucopy):  # after correction
-            pass
-        answer_2 += ucopy[len(ucopy) // 2]
+@solves_puzzle(day=5)
+def solve_both_parts(input: str) -> tuple[int, int]:
+    rules_input, updates_input = input.split("\n\n")
+    rules: list[tuple[int, int]] = [
+        (int(rule[0:2]), int(rule[3:5])) for rule in rules_input.split()
+    ]
+    updates: list[list[int]] = [
+        list(map(int, update.split(sep=","))) for update in updates_input.split()
+    ]
+    answer1: int = 0
+    answer2: int = 0
+    for update in updates:
+        ucopy: list[int] = copy(update)
+        if correct(ucopy, rules):  # initially correct
+            answer1 += ucopy[len(ucopy) // 2]
+        else:
+            while not correct(ucopy, rules):  # after correction
+                pass
+            answer2 += ucopy[len(ucopy) // 2]
+    return answer1, answer2
 
 
-print(answer_1)
-print(answer_2)
+if __name__ == "__main__":
+    solve_both_parts()
