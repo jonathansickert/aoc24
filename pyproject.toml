@@ -6,7 +6,7 @@ authors = ["jonathansickert <sickert.jonathan@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.10"
 requests = "^2.32.3"
 python-dotenv = "^1.0.1"
 ruff = "^0.8.3"
