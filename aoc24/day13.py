@@ -8,11 +8,11 @@ def compute_min_solution_using_cramers_rule(
 ) -> tuple[float, float] | None:
     """Solves Ax=b according to Carmer's rule"""
 
-    det_A = xa * yb - xb * ya
+    det_A: int = xa * yb - xb * ya
     if det_A == 0:
         return None
-    det_A1 = xt * yb - xb * yt
-    det_A2 = xa * yt - xt * ya
+    det_A1: int = xt * yb - xb * yt
+    det_A2: int = xa * yt - xt * ya
     return det_A1 / det_A, det_A2 / det_A
 
 
