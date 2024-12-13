@@ -31,7 +31,7 @@ def compute_min_cost(xa: int, ya: int, xb: int, yb: int, xt: int, yt: int) -> in
 
 
 @solves_puzzle(day=13)
-def solve_day_1(input: str) -> tuple[int, int]:
+def solve_both_parts(input: str) -> tuple[int, int]:
     answer1 = 0
     answer2 = 0
     for machine in input.split("\n\n"):
@@ -46,4 +46,4 @@ def solve_day_1(input: str) -> tuple[int, int]:
 
 
 if __name__ == "__main__":
-    solve_day_1()
+    solve_both_parts()
