@@ -22,7 +22,7 @@ def solves_puzzle(
                 case int(), int():
                     print(answer)
                     print(
-                        f"{(datetime.now() - start).total_seconds():.6f} (Part {part})"
+                        f"{(datetime.now() - start).total_seconds():.6f}s (Part {part})"
                     )
                 case (int(), int()), None:
                     print(answer[0])
