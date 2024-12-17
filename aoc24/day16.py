@@ -8,53 +8,51 @@ from aoc24.aoc_decorator import solves_puzzle
 State: TypeAlias = tuple[int, int, int]
 
 
-def neighbours(cur_x, cur_y, cur_d):
+def neighbours(cur_x, cur_y, cur_d, grid: list[str]):
     yield 1000, (cur_x, cur_y, (cur_d + 1) % 4)
     yield 1000, (cur_x, cur_y, (cur_d - 1) % 4)
     dx, dy = [(0, 1), (1, 0), (0, -1), (-1, 0)][cur_d]
-    yield 1, (cur_x + dx, cur_y + dy, cur_d)
+    nx, ny = cur_x + dx, cur_y + dy
+    if grid[nx][ny] != "#":
+        yield 1, (cur_x + dx, cur_y + dy, cur_d)
 
 
 def dijkstra(
-    V: set[tuple[int, int]], S: tuple[int, int]
+    V: set[tuple[int, int]], S: tuple[int, int], grid: list[str]
 ) -> tuple[dict[State, int], dict[State, set[State]]]:
     dist: dict[State, int] = defaultdict(lambda: sys.maxsize)
     prev: dict[State, set[State]] = defaultdict(lambda: set())
     s: State = (*S, 0)
     dist[s] = 0
     Q = []
+    heapq.heapify(Q)
     heapq.heappush(Q, (0, s))
 
     while Q:
         cur_cost, cur = heapq.heappop(Q)
         cur_x, cur_y, cur_d = cur
-
-        if cur_cost > dist[cur]:
-            continue
-
-        for cost, v in neighbours(cur_x, cur_y, cur_d):
+        for cost, v in neighbours(cur_x, cur_y, cur_d, grid):
             vx, vy, vd = v
-            if (vx, vy) in V:
-                v_cost: int = cur_cost + cost
-                if v_cost < dist[v]:
-                    dist[v] = v_cost
-                    heapq.heappush(Q, (v_cost, v))
-                    prev[v].add(cur)
-                elif v_cost <= dist[v]:
-                    prev[v].add(cur)
+            v_cost: int = cur_cost + cost
+            if v_cost < dist[v]:
+                dist[v] = v_cost
+                heapq.heappush(Q, (v_cost, v))
+                prev[v] = {cur}
+            elif v_cost == dist[v]:
+                prev[v].add(cur)
     return dist, prev
 
 
-def bfs(E: State, prevs: dict[State, set[State]]) -> int:
+def bfs(min_end: State, prevs: dict[State, set[State]]) -> set[State]:
     visited = set()
-    visited.add(E)
-    Q: list[State] = [E]
+    visited.add(min_end)
+    Q: list[State] = [min_end]
     while Q:
         cur: State = Q.pop()
         for prev in prevs[cur]:
             visited.add(prev)
             Q.append(prev)
-    return len({(x, y) for x, y, _ in visited})
+    return visited
 
 
 @solves_puzzle(day=16)
@@ -73,10 +71,14 @@ def solve_both_parts(input: str) -> tuple[int, int]:
             if grid[x][y] == "E":
                 E = (x, y)
                 V.add(E)
-    dist, prev = dijkstra(V, S)
-    answer1: int = min(dist[(E[0], E[1], i)] for i in range(4))
-    answer2: int = min(bfs((E[0], E[1], i), prev) for i in range(4))
-    return answer1, answer2
+    dist, prev = dijkstra(V, S, grid)
+    min_dist: int = min(dist[(E[0], E[1], i)] for i in range(4))
+    on_min_path = set()
+    for i in range(4):
+        if dist[e := (E[0], E[1], i)] == min_dist:
+            on_min_path.update(bfs(e, prev))
+
+    return min_dist, len({(x, y) for x, y, _ in on_min_path})
 
 
 if __name__ == "__main__":
