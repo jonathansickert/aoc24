@@ -11,6 +11,8 @@ requests = "^2.32.3"
 python-dotenv = "^1.0.1"
 ruff = "^0.8.3"
 mypy = "^1.13.0"
+scipy = "^1.14.1"
+z3-solver = "^4.13.4.0"
 
 
 [build-system]
