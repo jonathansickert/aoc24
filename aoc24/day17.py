@@ -1,3 +1,5 @@
+from z3 import BitVec, BitVecRef, Solver, UDiv, sat
+
 from aoc24.aoc_decorator import solves_puzzle
 
 
@@ -77,6 +79,29 @@ def run_program(registers: list[int], program: list[int]) -> list[int]:
     return output
 
 
+def run_with_z3(program: list[int]) -> int:
+    solver = Solver()
+    A: BitVecRef = BitVec("A", 64)
+    # A is divided by 8 in every round (0,3).
+    # The program needs to run exactly len(program) times to produce the required output.
+    # Therefore, A must be high enough, that it can be divided by 8 exactly len(program) times.
+    solver.add(A >= 8**15)
+    solver.add(A < 8**16)
+
+    A_cur: BitVecRef = A
+
+    for i in range(16):
+        # hardcoded chain of instructions
+        out: BitVecRef = (A_cur % 8) ^ 2 ^ 3 ^ (UDiv(A_cur, 1 << ((A_cur % 8) ^ 2))) % 8
+        solver.add(out == program[i])
+        A_cur = UDiv(A_cur, 8)
+
+    if solver.check() == sat:
+        return solver.model()[A].as_long()
+    else:
+        print("not satisfiable")
+
+
 @solves_puzzle(day=17, part=1)
 def solve_part_1(input: str) -> int:
     lines: list[str] = input.splitlines()
@@ -90,5 +115,13 @@ def solve_part_1(input: str) -> int:
     return 0
 
 
+@solves_puzzle(day=17, part=2)
+def solve_part_2(input: str) -> int:
+    lines: list[str] = input.splitlines()
+    program = list(map(int, lines[-1][9:].split(",")))
+    return run_with_z3(program)
+
+
 if __name__ == "__main__":
     solve_part_1()
+    solve_part_2()
