@@ -85,7 +85,7 @@ def solve_part_1(input: str) -> int:
         register = int(lines[i][12:])
         registers.append(register)
     program = list(map(int, lines[-1][9:].split(",")))
-    output: list[int] = run_program(registers, program)
+    output: list[int] = run_program([37222273957364, 0, 0], program)
     print(",".join(list(map(str, output))))
     return 0
 
