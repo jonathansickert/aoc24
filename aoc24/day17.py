@@ -1,85 +1,57 @@
-from z3 import BitVec, BitVecRef, Solver, UDiv, sat
-
 from aoc24.aoc_decorator import solves_puzzle
 
 
-def combo(operand: int, registers: list[int]) -> int:
-    if operand in {0, 1, 2, 3}:
-        return operand
-    if operand in {4, 5, 6}:
-        return registers[operand - 4]
-    raise ValueError
-
-
-def adv(operand: int, registers: list[int]) -> int:
-    return registers[0] // (2 ** combo(operand, registers))
-
-
-def bxl(operand: int, registers: list[int]) -> int:
-    return operand ^ registers[1]
-
-
-def bst(operand: int, registers: list[int]) -> int:
-    return combo(operand, registers) % 8
-
-
-def jnz(operand: int, registers: list[int]) -> int:
-    if registers[0] == 0:
-        return -1
-    return operand
-
-
-def bxc(operand: int, registers: list[int]) -> int:
-    return registers[1] ^ registers[2]
-
-
-def out(operand: int, registers: list[int]) -> int:
-    return combo(operand, registers) % 8
-
-
-def bdv(operand: int, registers: list[int]) -> int:
-    return registers[0] // 2 ** combo(operand, registers)
-
-
-def cdv(operand: int, registers: list[int]) -> int:
-    return registers[0] // 2 ** combo(operand, registers)
-
-
-function_lookup = {
-    0: (adv, 0),
-    1: (bxl, 1),
-    2: (bst, 1),
-    3: (jnz, 1000),
-    4: (bxc, 1),
-    5: (out, 1000),
-    6: (bdv, 1),
-    7: (cdv, 2),
-}
-
-
-def run_program(registers: list[int], program: list[int]) -> list[int]:
+def run_program(A_init: int, B_init: int, C_init: int, program: list[int]) -> list[int]:
     counter: int = 0
     output: list[int] = []
-    ops: list[int] = []
-    while counter + 1 < len(program):
+    A: int = A_init
+    B: int = B_init
+    C: int = C_init
+
+    def combo(op: int) -> int:
+        if op <= 3:
+            return op
+        if op == 4:
+            return A
+        if op == 5:
+            return B
+        if op == 6:
+            return C
+        raise AssertionError("unexpected operand: ", op)
+
+    while counter < len(program):
         opcode: int = program[counter]
-        operand: int = program[counter + 1]
-        operation, target_register = function_lookup[opcode]
-        result: int = operation(operand, registers)
-        ops.append(opcode)
-        if operation == out:
-            output.append(result)
-        elif operation == jnz:
-            if result != -1:
-                counter = result
+        op: int = program[counter + 1]
+
+        if opcode == 0:
+            A = A >> combo(op)
+        elif opcode == 1:
+            B = B ^ op
+        elif opcode == 2:
+            B = combo(op) % 8
+        elif opcode == 3:
+            if A == 0:
+                pass
+            else:
+                counter = op
                 continue
-        else:
-            registers[target_register] = result
+        elif opcode == 4:
+            B = B ^ C
+        elif opcode == 5:
+            output.append(combo(op) % 8)
+        elif opcode == 6:
+            B = A >> combo(op)
+        elif opcode == 7:
+            C = A >> combo(op)
+
         counter += 2
+
     return output
 
 
-def run_with_z3(program: list[int]) -> int:
+def solve_with_z3(program: list[int]) -> int | None:
+    from z3 import BitVec, BitVecRef, Solver, UDiv, sat
+
     solver = Solver()
     A: BitVecRef = BitVec("A", 64)
     # A is divided by 8 in every round (0,3).
@@ -98,8 +70,63 @@ def run_with_z3(program: list[int]) -> int:
 
     if solver.check() == sat:
         return solver.model()[A].as_long()
-    else:
-        print("not satisfiable")
+
+
+def run_program_without_jmp(program: list[int], A_init: int) -> int | None:
+    A: int = A_init
+    B: int = 0
+    C: int = 0
+
+    opcodes: list[int] = [program[i] for i in range(len(program)) if i % 2 == 0]
+    ops: list[int] = [program[i] for i in range(len(program)) if i % 2 == 1]
+
+    assert opcodes.count(0) == 1, "expect exactly 1 adv in the program"
+    assert opcodes.count(5) == 1, "expect exactly 1 out in the program"
+    assert opcodes.count(3) == 1, "expect exactly 1 jnz in the program"
+    assert ops[opcodes.index(0)] == 3, "expect adv instruction comes with operand 3"
+    assert ops[opcodes.index(3)] == 0, "expect jnz instruction comes with operand 0"
+    assert opcodes[-1] == 3, "assert last instruction is jnz"
+
+    def combo(op: int) -> int:
+        if op <= 3:
+            return op
+        if op == 4:
+            return A
+        if op == 5:
+            return B
+        if op == 6:
+            return C
+        raise AssertionError("unexpected operand: ", op)
+
+    for opcode, op in zip(opcodes, ops):
+        if opcode == 0:
+            A = A >> 3
+        elif opcode == 1:
+            B = B ^ op
+        elif opcode == 2:
+            B = combo(op) % 8
+        elif opcode == 4:
+            B = B ^ C
+        elif opcode == 5:
+            return combo(op) % 8
+        elif opcode == 6:
+            B = A >> combo(op)
+        elif opcode == 7:
+            C = A >> combo(op)
+        else:
+            raise AssertionError("unexpected opcode: ", opcode)
+
+
+def reverse_engineer(index: int, program: list[int], A_init: int) -> int | None:
+    if index < 0:
+        return A_init
+    for d in range(8):
+        A: int = (A_init << 3) + d
+        out: int | None = run_program_without_jmp(program, A)
+        if out == program[index]:
+            next: int | None = reverse_engineer(index - 1, program, A)
+            if next is not None:
+                return next
 
 
 @solves_puzzle(day=17, part=1)
@@ -110,7 +137,7 @@ def solve_part_1(input: str) -> int:
         register = int(lines[i][12:])
         registers.append(register)
     program = list(map(int, lines[-1][9:].split(",")))
-    output: list[int] = run_program([37222273957364, 0, 0], program)
+    output: list[int] = run_program(registers[0], registers[1], registers[2], program)
     print(",".join(list(map(str, output))))
     return 0
 
@@ -119,7 +146,10 @@ def solve_part_1(input: str) -> int:
 def solve_part_2(input: str) -> int:
     lines: list[str] = input.splitlines()
     program = list(map(int, lines[-1][9:].split(",")))
-    return run_with_z3(program)
+    answer: int | None = reverse_engineer(len(program) - 1, program, 0)
+    # answer: int | None = solve_with_z3(program)
+    assert answer is not None, "no solution"
+    return answer
 
 
 if __name__ == "__main__":
