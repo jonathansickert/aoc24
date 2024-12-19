@@ -69,7 +69,7 @@ def solve_with_z3(program: list[int]) -> int | None:
         A_cur = UDiv(A_cur, 8)
 
     if solver.check() == sat:
-        return solver.model()[A].as_long()
+        return solver.model()[A].as_long()  # type: ignore
 
 
 def run_program_without_jmp(program: list[int], A_init: int) -> int | None:
