@@ -29,9 +29,6 @@ def find_race_cheats(grid: list[str]) -> Iterator[Cheat]:
                     yield x, y, nx1, ny1, nx2, ny2
 
 
-# def find_cheat_ends(x: int, y: int, l: int, grid: list[str]):
-
-
 def neighbours(x: int, y: int, grid: list[str]) -> Iterator[tuple[int, int]]:
     for dx, dy in {(1, 0), (0, 1), (-1, 0), (0, -1)}:
         nx, ny = x + dx, y + dy
@@ -40,10 +37,10 @@ def neighbours(x: int, y: int, grid: list[str]) -> Iterator[tuple[int, int]]:
 
 
 def dijkstra(
-    S: tuple[int, int], E: tuple[int, int], cheat: Cheat | None, grid: list[str]
-) -> int:
-    dist: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
-    dist[S] = 0
+    S: tuple[int, int], grid: list[str]
+) -> defaultdict[tuple[int, int], float]:
+    dists: dict[tuple[int, int], float] = defaultdict(lambda: float("inf"))
+    dists[S] = 0
     Q = []
     heapq.heapify(Q)
     heapq.heappush(Q, (0, S))
@@ -52,24 +49,13 @@ def dijkstra(
         d, cur = heapq.heappop(Q)
         x, y = cur
 
-        if cheat and cheat[0] == x and cheat[1] == y:  # wa can take the cheat
-            n = cheat[4], cheat[5]
-            nd = d + 2
-            if nd < dist[n]:
-                dist[n] = nd
-                heapq.heappush(Q, (nd, n))
-            else:  # cheat did not help
-                return -1
-
         for n in neighbours(x, y, grid):
             nd = d + 1
-            if nd < dist[n]:
-                dist[n] = nd
+            if nd < dists[n]:
+                dists[n] = float(nd)
                 heapq.heappush(Q, (nd, n))
 
-    assert dist[E] != float("inf"), "end (E) could not be reached"
-    return int(dist[E])
-    # return dist
+    return dists
 
 
 @solves_puzzle(day=20, part=1)
@@ -91,27 +77,20 @@ def solve_part_1(input: str) -> int:
     assert S, "no start (S) found"
     assert E, "no end (E) found"
 
-    distance: int = dijkstra(S, E, None, grid)
-    cheats = set(find_race_cheats(grid))
-
-    print(distance)
-    print(len(cheats))
-
-    # return 0
-
-    # cheat_dists = defaultdict(int)
+    dists_from_S: defaultdict[tuple[int, int], float] = dijkstra(S, grid)
+    dists_from_E: defaultdict[tuple[int, int], float] = dijkstra(E, grid)
+    dist_E: float = dists_from_S[E]
+    assert dist_E.is_integer(), "end (E) unreachable"
 
     answer1: int = 0
-    for cheat in cheats:
-        cheat_distance: int = dijkstra(S, E, cheat, grid)
-        if cheat_distance == -1:
-            continue
-        distance_diff: int = distance - cheat_distance
-        if distance_diff >= 100:
-            # cheat_dists[distance_diff] += 1
-            answer1 += 1
 
-    # print(cheat_dists)
+    for cheat in set(find_race_cheats(grid)):
+        sx, sy, wx, wy, ex, ey = cheat
+        dist_to_cheat_start: float = dists_from_S[(sx, sy)]
+        dist_fro_cheat_end: float = dists_from_E[(ex, ey)]
+        total_dist_using_cheat: float = dist_to_cheat_start + 2 + dist_fro_cheat_end
+        if total_dist_using_cheat < dist_E:
+            answer1 += 1 if dist_E - total_dist_using_cheat >= 100 else 0
 
     return answer1
 
