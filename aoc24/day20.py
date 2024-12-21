@@ -4,29 +4,32 @@ from typing import Iterator
 
 from aoc24.aoc_decorator import solves_puzzle
 
-Cheat = tuple[int, int, int, int, int, int]
+Cheat = tuple[int, int, int, int, int]
 
 
 def isinbound(x: int, y: int, grid: list[str]) -> bool:
     return 0 <= x < len(grid) and 0 <= y < len(grid[0])
 
 
-def find_race_cheats(grid: list[str]) -> Iterator[Cheat]:
-    for x in range(len(grid)):
-        for y in range(len(grid[0])):
-            if grid[x][y] == "#":  # start cannot be wall
-                continue
-            for dx, dy in {(1, 0), (0, 1), (-1, 0), (0, -1)}:
-                nx1, ny1 = x + dx, y + dy
-                nx2, ny2 = x + 2 * dx, y + 2 * dy
+def find_cheats_of_length(x: int, y: int, length: int, grid: list[str]) -> set[Cheat]:
+    cheats: set[Cheat] = set()
 
-                if (
-                    isinbound(nx1, ny1, grid)
-                    and isinbound(nx2, ny2, grid)
-                    and grid[nx1][ny1] == "#"
-                    and grid[nx2][ny2] == "."
-                ):
-                    yield x, y, nx1, ny1, nx2, ny2
+    for dx in range(1, length + 1):
+        for dy in range(1, length + 1 - dx):
+            for mx, my in {(1, 1), (1, -1), (-1, -1), (-1, 1)}:
+                nx: int = x + mx * dx
+                ny: int = y + my * dy
+                if isinbound(nx, ny, grid) and grid[nx][ny] == ".":
+                    cheats.add((x, y, nx, ny, dx + dy))
+
+    for d in range(1, length + 1):
+        for mx, my in {(1, 0), (0, 1), (-1, 0), (0, -1)}:
+            nx: int = x + mx * d
+            ny: int = y + my * d
+            if isinbound(nx, ny, grid) and grid[nx][ny] == ".":
+                cheats.add((x, y, nx, ny, d))
+
+    return cheats
 
 
 def neighbours(x: int, y: int, grid: list[str]) -> Iterator[tuple[int, int]]:
@@ -58,8 +61,8 @@ def dijkstra(
     return dists
 
 
-@solves_puzzle(day=20, part=1)
-def solve_part_1(input: str) -> int:
+@solves_puzzle(day=20)
+def solve_both_parts(input: str) -> tuple[int, int]:
     grid: list[str] = input.splitlines()
 
     S: tuple[int, int]
@@ -83,17 +86,30 @@ def solve_part_1(input: str) -> int:
     assert dist_E.is_integer(), "end (E) unreachable"
 
     answer1: int = 0
+    answer2: int = 0
 
-    for cheat in set(find_race_cheats(grid)):
-        sx, sy, wx, wy, ex, ey = cheat
+    cheats = set()
+
+    for x in range(len(grid)):
+        for y in range(len(grid[0])):
+            if grid[x][y] == ".":
+                cheats.update(find_cheats_of_length(x, y, 20, grid))
+
+    for cheat in cheats:
+        sx, sy, ex, ey, length = cheat
         dist_to_cheat_start: float = dists_from_S[(sx, sy)]
         dist_fro_cheat_end: float = dists_from_E[(ex, ey)]
-        total_dist_using_cheat: float = dist_to_cheat_start + 2 + dist_fro_cheat_end
+        total_dist_using_cheat: float = (
+            dist_to_cheat_start + length + dist_fro_cheat_end
+        )
         if total_dist_using_cheat < dist_E:
-            answer1 += 1 if dist_E - total_dist_using_cheat >= 100 else 0
+            answer1 += (
+                1 if dist_E - total_dist_using_cheat >= 100 and length == 2 else 0
+            )
+            answer2 += 1 if dist_E - total_dist_using_cheat >= 100 else 0
 
-    return answer1
+    return answer1, answer2
 
 
 if __name__ == "__main__":
-    solve_part_1()
+    solve_both_parts()
