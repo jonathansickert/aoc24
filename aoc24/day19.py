@@ -20,7 +20,7 @@ def n_possible_arrangements(design: str, towels: list[str]) -> int:
 
 
 @solves_puzzle(day=19)
-def solve_part_1(input: str) -> tuple[int, int]:
+def solve_both_parts(input: str) -> tuple[int, int]:
     towels, designs = input.split("\n\n")
     towels = towels.split(", ")
     designs = designs.splitlines()
@@ -38,4 +38,4 @@ def solve_part_1(input: str) -> tuple[int, int]:
 
 
 if __name__ == "__main__":
-    solve_part_1()
+    solve_both_parts()
